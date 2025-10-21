@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cadastro de Endereço</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f3f3f3;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    form {
+      max-width: 400px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 25px;
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      margin-top: 15px;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1.5px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus {
+      border-color: #007BFF;
+      outline: none;
+    }
+
+    .loading {
+      font-size: 12px;
+      color: #777;
+      margin-top: 5px;
+    }
+
+    .error {
+      color: red;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Cadastro de Endereço</h2>
+  <form id="address-form" autocomplete="off">
+    <label for="cep">CEP:</label>
+    <input type="text" id="cep" maxlength="9" placeholder="Digite o CEP (ex: 01001-000)" />
+    <div id="cep-message" class="loading"></div>
+
+    <label for="logradouro">Logradouro:</label>
+    <input type="text" id="logradouro" readonly />
+
+    <label for="bairro">Bairro:</label>
+    <input type="text" id="bairro" readonly />
+
+    <label for="cidade">Cidade:</label>
+    <input type="text" id="cidade" readonly />
+
+    <label for="estado">Estado:</label>
+    <input type="text" id="estado" readonly />
+
+    <label for="numero">Número:</label>
+    <input type="number" id="numero" min="1" placeholder="Digite o número" />
+  </form>
+
+  <script>
+    const cepInput = document.getElementById('cep');
+    const logradouroInput = document.getElementById('logradouro');
+    const bairroInput = document.getElementById('bairro');
+    const cidadeInput = document.getElementById('cidade');
+    const estadoInput = document.getElementById('estado');
+    const cepMessage = document.getElementById('cep-message');
+
+    // Função para limpar campos de endereço
+    function limparCampos() {
+      logradouroInput.value = '';
+      bairroInput.value = '';
+      cidadeInput.value = '';
+      estadoInput.value = '';
+    }
+
+    // Função para validar o formato do CEP
+    function validarCEP(cep) {
+      // Remove qualquer caractere não numérico
+      const cepNumeros = cep.replace(/\D/g, '');
+      // Verifica se tem 8 dígitos
+      return /^[0-9]{8}$/.test(cepNumeros);
+    }
+
+    // Função para consultar ViaCEP
+    async function consultarCEP(cep) {
+      cepMessage.textContent = 'Consultando CEP...';
+      limparCampos();
+
+      try {
+        const cepNumeros = cep.replace(/\D/g, '');
+        const response = await fetch(`https://viacep.com.br/ws/${cepNumeros}/json/`);
+
+        if (!response.ok) {
+          throw new Error('Erro na consulta');
+        }
+
+        const data = await response.json();
+
+        if (data.erro) {
+          cepMessage.textContent = '';
+          alert('CEP não encontrado.');
+          limparCampos();
+          return;
+        }
+
+        logradouroInput.value = data.logradouro;
+        bairroInput.value = data.bairro;
+        cidadeInput.value = data.localidade;
+        estadoInput.value = data.uf;
+        cepMessage.textContent = '';
+      } catch (error) {
+        cepMessage.textContent = '';
+        alert('Erro ao buscar CEP. Tente novamente mais tarde.');
+      }
+    }
+
+    // Evento: quando o usuário perde o foco do campo CEP
+    cepInput.addEventListener('blur', () => {
+      const cep = cepInput.value;
+
+      if (validarCEP(cep)) {
+        consultarCEP(cep);
+      } else {
+        alert('CEP inválido. Insira um CEP no formato 00000-000 ou 00000000.');
+        limparCampos();
+      }
+    });
+
+    // Opcional: pode adicionar formatação enquanto digita (máscara simples)
+    cepInput.addEventListener('input', () => {
+      let valor = cepInput.value;
+      valor = valor.replace(/\D/g, ''); // apenas números
+      if (valor.length > 5) {
+        valor = valor.slice(0, 5) + '-' + valor.slice(5, 8);
+      }
+      cepInput.value = valor;
+    });
+  </script>
+</body>
+</html>
